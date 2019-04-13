@@ -14,6 +14,7 @@ class AttrDict(dict):
 
 LOCAL_FARM_ROOT = opd(opd(opd(opd(os.path.abspath(__file__)))))
 LOCAL_FARM_DB_FILE = os.path.join(LOCAL_FARM_ROOT, 'database.sqlite')
+LOCAL_FARM_RESOURCE_DIR = os.path.join(opd(opd(os.path.abspath(__file__))), 'ui', 'resource')
 
 
 LOCAL_FARM_STATUS = AttrDict(

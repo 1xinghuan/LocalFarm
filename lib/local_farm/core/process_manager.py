@@ -80,6 +80,9 @@ class ProcessManager(object):
             pid = i.pid
             if pid is not None:
                 kill_pid(pid)
+                for t in self.processPool:
+                    if t.pid == pid:
+                        t.terminate()
 
             i.pid = None
 
