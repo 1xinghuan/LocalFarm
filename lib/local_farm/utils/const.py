@@ -21,8 +21,9 @@ LOCAL_FARM_STATUS = AttrDict(
     pending='pending',
     running='running',
     complete='complete',
-    block='block',
+    blocking='blocking',
     failed='failed',
+    killed='killed',
 )
 
 

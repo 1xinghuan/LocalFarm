@@ -6,6 +6,10 @@ from local_farm.module.sqt import *
 from local_farm.data.models import *
 from local_farm.ui.detail.main import DetailWindow
 from local_farm.ui.context_menu.context_object import ContextObject
+from local_farm.core.process_manager import ProcessManager
+
+
+_MAIN_WINDOW = None
 
 
 FARM_JOB_COLUMNS = [
@@ -46,6 +50,8 @@ class FarmDataTable(QTableWidget, ContextObject):
         super(FarmDataTable, self).__init__(*args, **kwargs)
         ContextObject.__init__(self)
 
+        self._dataRows = {}
+
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().hide()
@@ -76,6 +82,7 @@ class FarmDataTable(QTableWidget, ContextObject):
             self.add_data_row(data, row=index)
 
     def add_data_row(self, data, row=0):
+        items = []
         for index, columnDict in enumerate(self.columns):
             attrName = columnDict.get('attr')
             value = getattr(data, attrName)
@@ -83,6 +90,8 @@ class FarmDataTable(QTableWidget, ContextObject):
 
             item = FarmDataTableItem(valueString, data=data)
             self.setItem(row, index, item)
+            items.append(item)
+        self._dataRows[data] = items
 
     def get_selected_datas(self):
         result = []
@@ -91,6 +100,9 @@ class FarmDataTable(QTableWidget, ContextObject):
             if item.farmData not in result:
                 result.append(item.farmData)
         return result
+
+    def get_data_items(self, data):
+        return self._dataRows.get(data, [])
 
 
 class FarmJobTable(FarmDataTable):
@@ -102,22 +114,29 @@ class FarmInstanceTable(FarmDataTable):
 
 
 
-class LocalFarmWindow(QMainWindow):
+class LocalFarmWindow(QMainWindow, ProcessManager):
     def __init__(self, *args, **kwargs):
         super(LocalFarmWindow, self).__init__(*args, **kwargs)
+        ProcessManager.__init__(self)
 
         self.init_ui()
         self.create_signal()
 
+        global _MAIN_WINDOW
+        _MAIN_WINDOW = self
+
+        self.refresh_job_table()
+
     def set_menu(self):
         self.fileMenu = QMenu('File', self)
-
         self.menuBar().addMenu(self.fileMenu)
 
         self.submitMenu = QMenu('Submit', self)
         self.menuBar().addMenu(self.submitMenu)
 
     def init_ui(self):
+        self.setWindowTitle('Local Farm')
+
         self.set_menu()
 
         self.centerWidget = QWidget()
@@ -130,8 +149,8 @@ class LocalFarmWindow(QMainWindow):
         self.refreshButton = QPushButton('Refresh')
         self.buttonLayout.addWidget(self.refreshButton)
 
-        self.jobsTable = FarmJobTable(parent=self)
-        self.instancesTable = FarmInstanceTable(parent=self)
+        self.jobsTable = FarmJobTable()
+        self.instancesTable = FarmInstanceTable()
         self.detailWidndow = DetailWindow()
 
         self.leftSplitter = QSplitter(Qt.Vertical)
@@ -149,7 +168,7 @@ class LocalFarmWindow(QMainWindow):
         self.masterLayout.addLayout(self.buttonLayout)
         self.masterLayout.addWidget(self.mainSplitter)
 
-        self.resize(1000, 700)
+        self.resize(1300, 800)
 
     def create_signal(self):
         self.refreshButton.clicked.connect(self.refresh_clicked)
@@ -160,7 +179,7 @@ class LocalFarmWindow(QMainWindow):
         self.refresh_job_table()
 
     def refresh_job_table(self):
-        query = FarmJob.select().limit(50)
+        query = FarmJob.select().order_by(FarmJob.id.desc()).limit(50)
         self.jobsTable.refresh_from_data(query)
 
     def job_selected_changed(self):
@@ -174,14 +193,35 @@ class LocalFarmWindow(QMainWindow):
             self.refresh_detail_window(selectedInstances[0])
 
     def refresh_instance_table(self, job):
-        query = (FarmInstance.select(FarmInstance, FarmJob)
-                 .join(FarmJob)
-                 .where(FarmInstance.job == job.id)
-                 .order_by(FarmInstance.id)
-                 )
+        query = job.get_instances()
         self.instancesTable.refresh_from_data(query)
         self.instancesTable.select_row(0)
 
     def refresh_detail_window(self, instance):
         self.detailWidndow.set_instance(instance)
+
+    def update_job(self, job):
+        items = self.jobsTable.get_data_items(job)
+        for item in items:
+            col = item.column()
+            columnDict = self.jobsTable.columns[col]
+
+            attrName = columnDict.get('attr')
+            value = getattr(job, attrName)
+            valueString = u'{}'.format(value)
+            item.setText(valueString)
+
+    def remove_job_items(self, items):
+        rows = []
+        for i in items:
+            row = i.row()
+            if row not in rows:
+                rows.append(row)
+        rows.sort(reverse=True)
+        for row in rows:
+            self.jobsTable.removeRow(row)
+
+
+def get_main_window():
+    return _MAIN_WINDOW
 

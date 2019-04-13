@@ -20,7 +20,14 @@ class Test1Action(ContextAction):
 ContextMenuManager.register_actions('TestItem', [Test1Action(menu='')])
 
 
-class JobAction(ContextAction):
+class DataAction(ContextAction):
+    def get_selected_datas(self, items):
+        dataTableWidget = items[0].tableWidget()
+        selectedJobs = dataTableWidget.get_selected_datas()
+        return selectedJobs
+
+
+class JobAction(DataAction):
     def check_visible(self, items):
         visible = super(JobAction, self).check_visible(items)
         if not visible:
@@ -49,10 +56,12 @@ class JobStartAction(JobAction):
         return False
 
     def execute(self, items):
-        dataTableWidget = items[0].tableWidget()
-        mainWindow = dataTableWidget.parent()
-        print mainWindow
-        selectedJobs = dataTableWidget.get_selected_datas()
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedJobs = self.get_selected_datas(items)
+        for job in selectedJobs:
+            mainWindow.start_job(job)
+            # mainWindow.update_job(job)
 
 
 class JobKillAction(JobAction):
@@ -70,10 +79,12 @@ class JobKillAction(JobAction):
         return False
 
     def execute(self, items):
-        dataTableWidget = items[0].tableWidget()
-        mainWindow = dataTableWidget.parent()
-        print mainWindow
-        selectedJobs = dataTableWidget.get_selected_datas()
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedJobs = self.get_selected_datas(items)
+        for job in selectedJobs:
+            mainWindow.kill_job(job)
+            mainWindow.update_job(job)
 
 
 class JobRetryAction(JobAction):
@@ -86,15 +97,20 @@ class JobRetryAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.farmData.status == LOCAL_FARM_STATUS.failed:
+            if item.farmData.status in [
+                LOCAL_FARM_STATUS.failed,
+                LOCAL_FARM_STATUS.killed,
+            ]:
                 return True
         return False
 
     def execute(self, items):
-        dataTableWidget = items[0].tableWidget()
-        mainWindow = dataTableWidget.parent()
-        print mainWindow
-        selectedJobs = dataTableWidget.get_selected_datas()
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedJobs = self.get_selected_datas(items)
+        for job in selectedJobs:
+            mainWindow.retry_job(job)
+            # mainWindow.update_job(job)
 
 
 class JobRemoveAction(JobAction):
@@ -108,19 +124,23 @@ class JobRemoveAction(JobAction):
     def check_executable(self, items):
         for item in items:
             if item.farmData.status not in [
-                LOCAL_FARM_STATUS.complete, LOCAL_FARM_STATUS.failed
+                LOCAL_FARM_STATUS.new,
+                LOCAL_FARM_STATUS.complete,
+                LOCAL_FARM_STATUS.failed,
+                LOCAL_FARM_STATUS.killed,
             ]:
                 return False
         return True
 
     def execute(self, items):
-        dataTableWidget = items[0].tableWidget()
-        mainWindow = dataTableWidget.parent()
-        print mainWindow
-        selectedJobs = dataTableWidget.get_selected_datas()
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedJobs = self.get_selected_datas(items)
+        mainWindow.remove_jobs(selectedJobs)
+        mainWindow.remove_job_items(items)
 
 
-class InstanceAction(ContextAction):
+class InstanceAction(DataAction):
     def check_visible(self, items):
         visible = super(InstanceAction, self).check_visible(items)
         if not visible:
@@ -144,15 +164,19 @@ class InstanceRetryAction(InstanceAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.farmData.status == LOCAL_FARM_STATUS.failed:
+            if item.farmData.status in [
+                LOCAL_FARM_STATUS.failed,
+                LOCAL_FARM_STATUS.killed,
+            ]:
                 return True
         return False
 
     def execute(self, items):
-        dataTableWidget = items[0].tableWidget()
-        mainWindow = dataTableWidget.parent()
-        print mainWindow
-        selectedJobs = dataTableWidget.get_selected_datas()
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedInstances = self.get_selected_datas(items)
+        for i in selectedInstances:
+            mainWindow.retry_instance(i)
 
 
 ContextMenuManager.register_actions(

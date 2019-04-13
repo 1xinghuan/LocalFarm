@@ -30,7 +30,7 @@ class FarmJob(BaseModel):
     submitTime = DateTimeField(null=True, default=datetime.datetime.now)
     startTime = DateTimeField(null=True)
     completeTime = DateTimeField(null=True)
-    elapsedTime = TimestampField(null=True, default=0)
+    elapsedTime = IntegerField(null=True, default=0)
     cwd = CharField(null=True)
     env = TextField(null=True)
     command = CharField(null=True)
@@ -90,6 +90,19 @@ class FarmJob(BaseModel):
 
         return self.id
 
+    def get_instances(self, status=None):
+        query = (FarmInstance.select(FarmInstance, FarmJob)
+                 .join(FarmJob)
+                 .where(FarmInstance.job == self.id)
+                 .order_by(FarmInstance.id)
+                 )
+        if status is not None:
+            if isinstance(status, basestring):
+                query = query.where(FarmInstance.status == status)
+            elif isinstance(status, list):
+                query = query.where(FarmInstance.status.in_(status))
+        return [i for i in query]
+
 
 class FarmInstance(BaseModel):
     job = ForeignKeyField(model=FarmJob, backref='instances')
@@ -98,10 +111,11 @@ class FarmInstance(BaseModel):
     progress = IntegerField(null=True, default=0)  # 0-100
     startTime = DateTimeField(null=True)
     completeTime = DateTimeField(null=True)
-    elapsedTime = TimestampField(null=True, default=0)
+    elapsedTime = IntegerField(null=True, default=0)
     frameRange = CharField(null=True)
     stdout = TextField(null=True)
     stderr = TextField(null=True)
+    pid = IntegerField(null=True)
 
     class Meta:
         db_table = 'instances'
