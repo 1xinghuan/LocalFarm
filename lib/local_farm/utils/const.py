@@ -16,7 +16,7 @@ LOCAL_FARM_ROOT = opd(opd(opd(opd(os.path.abspath(__file__)))))
 LOCAL_FARM_DB_FILE = os.path.join(LOCAL_FARM_ROOT, 'database.sqlite')
 
 
-STATUS = AttrDict(
+LOCAL_FARM_STATUS = AttrDict(
     new='new',
     pending='pending',
     running='running',

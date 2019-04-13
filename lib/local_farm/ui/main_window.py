@@ -5,12 +5,13 @@
 from local_farm.module.sqt import *
 from local_farm.data.models import *
 from local_farm.ui.detail.main import DetailWindow
+from local_farm.ui.context_menu.context_object import ContextObject
 
 
 FARM_JOB_COLUMNS = [
     {'attr': 'id', 'label': 'Id', 'width': 70},
     {'attr': 'status', 'label': 'Status'},
-    {'attr': 'name', 'label': 'Name', 'width': 400},
+    {'attr': 'name', 'label': 'Name', 'width': 300},
     {'attr': 'submitTime', 'label': 'Submit Time'},
     {'attr': 'startTime', 'label': 'Start Time'},
     {'attr': 'completeTime', 'label': 'Complete Time'},
@@ -29,17 +30,21 @@ FARM_INSTANCE_COLUMNS = [
 
 
 class FarmDataTableItem(QTableWidgetItem):
+    itemName = 'DataTableItem'
+
     def __init__(self, text, data=None):
         super(FarmDataTableItem, self).__init__(text)
 
-        self.data = data
+        self.farmData = data
+        # self.tableWidget()
 
 
-class FarmDataTable(QTableWidget):
+class FarmDataTable(QTableWidget, ContextObject):
     columns = []
 
-    def __init__(self):
-        super(FarmDataTable, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(FarmDataTable, self).__init__(*args, **kwargs)
+        ContextObject.__init__(self)
 
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.horizontalHeader().setStretchLastSection(True)
@@ -83,8 +88,8 @@ class FarmDataTable(QTableWidget):
         result = []
         selectedItems = self.selectedItems()
         for item in selectedItems:
-            if item.data not in result:
-                result.append(item.data)
+            if item.farmData not in result:
+                result.append(item.farmData)
         return result
 
 
@@ -125,8 +130,8 @@ class LocalFarmWindow(QMainWindow):
         self.refreshButton = QPushButton('Refresh')
         self.buttonLayout.addWidget(self.refreshButton)
 
-        self.jobsTable = FarmJobTable()
-        self.instancesTable = FarmInstanceTable()
+        self.jobsTable = FarmJobTable(parent=self)
+        self.instancesTable = FarmInstanceTable(parent=self)
         self.detailWidndow = DetailWindow()
 
         self.leftSplitter = QSplitter(Qt.Vertical)

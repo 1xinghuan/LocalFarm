@@ -9,3 +9,8 @@ logging.basicConfig(
     format='[%(levelname)s] %(message)s'
 )
 
+
+import platform
+
+PYTHON_MAIN_VERSION = int(platform.python_version_tuple()[0])
+

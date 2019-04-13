@@ -5,7 +5,7 @@
 import os
 import datetime
 from local_farm.module.db.peewee import *
-from local_farm.utils.const import LOCAL_FARM_DB_FILE, STATUS
+from local_farm.utils.const import LOCAL_FARM_DB_FILE, LOCAL_FARM_STATUS
 from local_farm.utils.frame import get_frame_list
 import logging
 
@@ -25,7 +25,7 @@ class BaseModel(Model):
 
 class FarmJob(BaseModel):
     name = CharField(null=True)
-    status = CharField(null=True, default=STATUS.new)
+    status = CharField(null=True, default=LOCAL_FARM_STATUS.new)
     progress = IntegerField(null=True, default=0)  # 0-100
     submitTime = DateTimeField(null=True, default=datetime.datetime.now)
     startTime = DateTimeField(null=True)
@@ -94,7 +94,7 @@ class FarmJob(BaseModel):
 class FarmInstance(BaseModel):
     job = ForeignKeyField(model=FarmJob, backref='instances')
 
-    status = CharField(null=True, default=STATUS.pending)
+    status = CharField(null=True, default=LOCAL_FARM_STATUS.new)
     progress = IntegerField(null=True, default=0)  # 0-100
     startTime = DateTimeField(null=True)
     completeTime = DateTimeField(null=True)

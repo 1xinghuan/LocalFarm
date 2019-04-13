@@ -28,7 +28,7 @@ class JobAction(ContextAction):
 
         from local_farm.data.models import FarmJob, FarmInstance
         item = items[0]
-        if isinstance(item.data, FarmJob):
+        if isinstance(item.farmData, FarmJob):
             return True
         else:
             return False
@@ -44,7 +44,7 @@ class JobStartAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.data.status == LOCAL_FARM_STATUS.new:
+            if item.farmData.status == LOCAL_FARM_STATUS.new:
                 return True
         return False
 
@@ -65,7 +65,7 @@ class JobKillAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.data.status == LOCAL_FARM_STATUS.running:
+            if item.farmData.status == LOCAL_FARM_STATUS.running:
                 return True
         return False
 
@@ -86,7 +86,7 @@ class JobRetryAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.data.status == LOCAL_FARM_STATUS.failed:
+            if item.farmData.status == LOCAL_FARM_STATUS.failed:
                 return True
         return False
 
@@ -107,7 +107,7 @@ class JobRemoveAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.data.status not in [
+            if item.farmData.status not in [
                 LOCAL_FARM_STATUS.complete, LOCAL_FARM_STATUS.failed
             ]:
                 return False
@@ -128,7 +128,7 @@ class InstanceAction(ContextAction):
 
         from local_farm.data.models import FarmJob, FarmInstance
         item = items[0]
-        if isinstance(item.data, FarmInstance):
+        if isinstance(item.farmData, FarmInstance):
             return True
         else:
             return False
@@ -144,7 +144,7 @@ class InstanceRetryAction(InstanceAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.data.status == LOCAL_FARM_STATUS.failed:
+            if item.farmData.status == LOCAL_FARM_STATUS.failed:
                 return True
         return False
 

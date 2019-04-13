@@ -6,7 +6,7 @@ import os
 import subprocess
 import datetime
 from local_farm.module.sqt import QThread, Signal
-from local_farm.utils.const import STATUS, LOCAL_FARM_VARIABLES
+from local_farm.utils.const import LOCAL_FARM_STATUS, LOCAL_FARM_VARIABLES
 from local_farm.utils.frame import get_frame_info
 
 
@@ -52,7 +52,7 @@ class ProcessThread(QThread):
         startTime = datetime.datetime.now()
 
         self.instance.startTime = startTime
-        self.instance.status = STATUS.running
+        self.instance.status = LOCAL_FARM_STATUS.running
         self.instance.save()
 
         process = subprocess.Popen(
@@ -99,9 +99,9 @@ class ProcessThread(QThread):
         self.instance.elapsedTime = elapsedTime
 
         if failed:
-            self.instance.status = STATUS.failed
+            self.instance.status = LOCAL_FARM_STATUS.failed
         else:
-            self.instance.status = STATUS.complete
+            self.instance.status = LOCAL_FARM_STATUS.complete
 
         self.instance.save()
 
