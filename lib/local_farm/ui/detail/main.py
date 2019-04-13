@@ -4,6 +4,7 @@
 
 from local_farm.module.sqt import *
 from local_farm.utils.time_utils import *
+from local_farm.data.models import FarmJob
 
 
 class FarmPropertyWindow(QWidget):
@@ -69,9 +70,11 @@ class FarmPropertyWindow(QWidget):
         self.masterLayout.addWidget(self.jobPropertyBox)
         self.masterLayout.addWidget(self.instancePropertyBox)
 
-    def set_instance(self, instance):
+    def set_instance(self, instance, job=None):
         self.instance = instance
-        self.job = self.instance.job
+        self.job = job
+        if job is None:
+            self.job = self.instance.job
 
         self.update_ui()
 
@@ -117,9 +120,11 @@ class FarmCommandWindow(QWidget):
         self.masterLayout.addRow('Cwd: ', self.cwdLabel)
         self.masterLayout.addRow('Env: ', self.envEdit)
 
-    def set_instance(self, instance):
+    def set_instance(self, instance, job=None):
         self.instance = instance
-        self.job = self.instance.job
+        self.job = job
+        if job is None:
+            self.job = self.instance.job
 
         self.update_ui()
 
@@ -140,9 +145,11 @@ class FarmLogWindow(QTabWidget):
         self.addTab(self.stdoutEdit, 'stdout')
         self.addTab(self.stderrEdit, 'stderr')
 
-    def set_instance(self, instance):
+    def set_instance(self, instance, job=None):
         self.instance = instance
-        self.job = self.instance.job
+        self.job = job
+        if job is None:
+            self.job = self.instance.job
 
         self.update_ui()
 
@@ -164,8 +171,9 @@ class DetailWindow(QTabWidget):
         self.addTab(self.logWindow, 'Log')
 
     def set_instance(self, instance):
-        self.propertyWindow.set_instance(instance)
-        self.commandWindow.set_instance(instance)
-        self.logWindow.set_instance(instance)
+        job = FarmJob.get(id=instance.job)
+        self.propertyWindow.set_instance(instance, job=job)
+        self.commandWindow.set_instance(instance, job=job)
+        self.logWindow.set_instance(instance, job=job)
 
 

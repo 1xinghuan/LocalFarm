@@ -91,7 +91,7 @@ class FarmDataTable(QTableWidget, ContextObject):
             item = FarmDataTableItem(valueString, data=data)
             self.setItem(row, index, item)
             items.append(item)
-        self._dataRows[data] = items
+        self._dataRows[data.id] = items
 
     def get_selected_datas(self):
         result = []
@@ -102,7 +102,7 @@ class FarmDataTable(QTableWidget, ContextObject):
         return result
 
     def get_data_items(self, data):
-        return self._dataRows.get(data, [])
+        return self._dataRows.get(data.id, [])
 
 
 class FarmJobTable(FarmDataTable):
@@ -111,7 +111,6 @@ class FarmJobTable(FarmDataTable):
 
 class FarmInstanceTable(FarmDataTable):
     columns = FARM_INSTANCE_COLUMNS
-
 
 
 class LocalFarmWindow(QMainWindow, ProcessManager):
@@ -200,17 +199,6 @@ class LocalFarmWindow(QMainWindow, ProcessManager):
     def refresh_detail_window(self, instance):
         self.detailWidndow.set_instance(instance)
 
-    def update_job(self, job):
-        items = self.jobsTable.get_data_items(job)
-        for item in items:
-            col = item.column()
-            columnDict = self.jobsTable.columns[col]
-
-            attrName = columnDict.get('attr')
-            value = getattr(job, attrName)
-            valueString = u'{}'.format(value)
-            item.setText(valueString)
-
     def remove_job_items(self, items):
         rows = []
         for i in items:
@@ -220,6 +208,30 @@ class LocalFarmWindow(QMainWindow, ProcessManager):
         rows.sort(reverse=True)
         for row in rows:
             self.jobsTable.removeRow(row)
+
+    def process_status_changed(self, data, status=None):
+        self.update_data(data)
+
+    def update_data(self, data):
+        if isinstance(data, FarmJob):
+            items = self.jobsTable.get_data_items(data)
+            columns = self.jobsTable.columns
+        elif isinstance(data, FarmInstance):
+            items = self.instancesTable.get_data_items(data)
+            columns = self.instancesTable.columns
+
+        for item in items:
+            try:
+                item.farmData = data
+                col = item.column()
+                columnDict = columns[col]
+
+                attrName = columnDict.get('attr')
+                value = getattr(data, attrName)
+                valueString = u'{}'.format(value)
+                item.setText(valueString)
+            except:
+                pass
 
 
 def get_main_window():

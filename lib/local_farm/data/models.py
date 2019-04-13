@@ -90,7 +90,7 @@ class FarmJob(BaseModel):
 
         return self.id
 
-    def get_instances(self, status=None):
+    def get_instances(self, status=None, reverse=False):
         query = (FarmInstance.select(FarmInstance, FarmJob)
                  .join(FarmJob)
                  .where(FarmInstance.job == self.id)
@@ -98,10 +98,22 @@ class FarmJob(BaseModel):
                  )
         if status is not None:
             if isinstance(status, basestring):
-                query = query.where(FarmInstance.status == status)
+                if not reverse:
+                    query = query.where(FarmInstance.status == status)
+                else:
+                    query = query.where(FarmInstance.status != status)
             elif isinstance(status, list):
-                query = query.where(FarmInstance.status.in_(status))
+                if not reverse:
+                    query = query.where(FarmInstance.status.in_(status))
+                else:
+                    query = query.where(FarmInstance.status.not_in(status))
         return [i for i in query]
+
+    def check_self(self):
+        notCompleteInstances = self.get_instances(LOCAL_FARM_STATUS.complete, reverse=True)
+        if len(notCompleteInstances) == 0:
+            self.status = LOCAL_FARM_STATUS.complete
+            self.save()
 
 
 class FarmInstance(BaseModel):

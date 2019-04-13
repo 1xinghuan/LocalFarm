@@ -84,7 +84,7 @@ class JobKillAction(JobAction):
         selectedJobs = self.get_selected_datas(items)
         for job in selectedJobs:
             mainWindow.kill_job(job)
-            mainWindow.update_job(job)
+            mainWindow.update_data(job)
 
 
 class JobRetryAction(JobAction):
@@ -140,6 +140,23 @@ class JobRemoveAction(JobAction):
         mainWindow.remove_job_items(items)
 
 
+class JobCheckAction(JobAction):
+    name = 'check_job'
+
+    def __init__(self, *args, **kwargs):
+        super(JobCheckAction, self).__init__(*args, **kwargs)
+
+        self.label = 'Refresh'
+
+    def execute(self, items):
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedJobs = self.get_selected_datas(items)
+        for job in selectedJobs:
+            job.check_self()
+            mainWindow.update_data(job)
+
+
 class InstanceAction(DataAction):
     def check_visible(self, items):
         visible = super(InstanceAction, self).check_visible(items)
@@ -186,6 +203,7 @@ ContextMenuManager.register_actions(
         JobKillAction,
         JobRetryAction,
         JobRemoveAction,
+        JobCheckAction,
         InstanceRetryAction,
     ]
 )

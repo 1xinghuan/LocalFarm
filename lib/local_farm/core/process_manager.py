@@ -34,19 +34,26 @@ class ProcessManager(object):
         return result
 
     def start_job(self, job):
+        job.status = LOCAL_FARM_STATUS.pending
+        job.save()
+
         instances = job.get_instances()
         self.add_instances_to_pool(instances)
         self.check_all()
+        self.process_status_changed(job)
 
     def add_instances_to_pool(self, instances):
         for i in instances:
             self.add_instance_to_pool(i)
 
     def add_instance_to_pool(self, instance):
-        self.processThread = ProcessThread(instance)
+        self.processThread = ProcessThread()
+        self.processThread.statusChanged.connect(self.process_status_changed)
         self.processThread.progressChanged.connect(self.process_progress_changed)
         self.processThread.processDone.connect(self.process_done)
         self.processPool.append(self.processThread)
+
+        self.processThread.set_instance(instance)
 
     def check_all(self):
         self.processPool.sort(cmp=process_cmp)
@@ -61,6 +68,9 @@ class ProcessManager(object):
         self.check_all()
 
     def process_progress_changed(self, progress):
+        pass
+
+    def process_status_changed(self, data, status=None):
         pass
 
     def kill_job(self, job):
@@ -80,13 +90,15 @@ class ProcessManager(object):
             ]:
                 i.status = LOCAL_FARM_STATUS.killed
                 i.save()
+                self.process_status_changed(i)
 
         job.status = LOCAL_FARM_STATUS.killed
         job.save()
+        self.process_status_changed(job)
 
     def retry_job(self, job):
-        job.status = LOCAL_FARM_STATUS.running
-        job.save()
+        job.check_self()
+        self.process_status_changed(job)
 
         instances = job.get_instances(status=[
             LOCAL_FARM_STATUS.failed,

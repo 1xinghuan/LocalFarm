@@ -12,12 +12,19 @@ from local_farm.data.models import FarmJob
 
 
 class ProcessThread(QThread):
+    statusChanged = Signal(object, str)
     progressChanged = Signal(int)
     processDone = Signal(object)
 
-    def __init__(self, instance):
+    def __init__(self, instance=None):
         super(ProcessThread, self).__init__()
 
+        if instance is not None:
+            self.set_instance(instance)
+
+        self.pid = None
+
+    def set_instance(self, instance):
         self.instance = instance
         self.job = self.instance.job
 
@@ -25,10 +32,12 @@ class ProcessThread(QThread):
 
         self.instance.status = LOCAL_FARM_STATUS.pending
         self.instance.save()
+        self.statusChanged.emit(self.instance, LOCAL_FARM_STATUS.pending)
 
         if self.job.status == LOCAL_FARM_STATUS.new:
             self.job.status = LOCAL_FARM_STATUS.pending
             self.job.save()
+            self.statusChanged.emit(self.job, LOCAL_FARM_STATUS.pending)
 
     def run(self):
         cmd = self.job.command
@@ -76,10 +85,17 @@ class ProcessThread(QThread):
         self.instance.pid = self.pid
         self.instance.save()
 
+        self.statusChanged.emit(self.instance, LOCAL_FARM_STATUS.running)
+
         job = FarmJob.get(id=self.job.id)
-        if job.status == LOCAL_FARM_STATUS.pending:
+        if job.status in [
+            LOCAL_FARM_STATUS.pending,
+            # LOCAL_FARM_STATUS.killed,
+            # LOCAL_FARM_STATUS.failed,
+        ]:
             job.status = LOCAL_FARM_STATUS.running
             job.save()
+            self.statusChanged.emit(job, LOCAL_FARM_STATUS.running)
         if job.startTime is None:
             job.startTime = startTime
             job.save()
@@ -107,7 +123,6 @@ class ProcessThread(QThread):
 
             failed = True
 
-
         completeTime = datetime.datetime.now()
         elapsedTime = completeTime - startTime
         elapsedTime = int(elapsedTime.total_seconds())
@@ -124,15 +139,11 @@ class ProcessThread(QThread):
             self.instance.status = LOCAL_FARM_STATUS.complete
 
         self.instance.save()
+        self.statusChanged.emit(self.instance, self.instance.status)
 
         if not failed:
-            jobComplete = True
-            instances = job.get_instances()
-            for i in instances:
-                if i.status != LOCAL_FARM_STATUS.complete:
-                    jobComplete = False
-                    break
-            if jobComplete:
+            notCompleteInstances = job.get_instances(LOCAL_FARM_STATUS.complete, reverse=True)
+            if len(notCompleteInstances) == 0:
                 job.status = LOCAL_FARM_STATUS.complete
                 job.completeTime = completeTime
                 jobElapsedTime = completeTime - job.startTime
@@ -140,6 +151,7 @@ class ProcessThread(QThread):
                 job.elapsedTime = jobElapsedTime
 
         job.save()
+        self.statusChanged.emit(job, job.status)
 
         self.processDone.emit(self)
 
