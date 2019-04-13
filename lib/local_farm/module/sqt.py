@@ -4,11 +4,11 @@
 
 import os
 
-if os.getenv("QT_PREFERRED_BINDING") is None:
-    os.environ['QT_PREFERRED_BINDING'] = 'PyQt4'
-    # os.environ['QT_PREFERRED_BINDING'] = 'PyQt5'
-    # os.environ['QT_PREFERRED_BINDING'] = 'PySide'
-    # os.environ['QT_PREFERRED_BINDING'] = 'PySide2'
+# if os.getenv("QT_PREFERRED_BINDING") is None:
+#     os.environ['QT_PREFERRED_BINDING'] = 'PyQt4'
+#     # os.environ['QT_PREFERRED_BINDING'] = 'PyQt5'
+#     # os.environ['QT_PREFERRED_BINDING'] = 'PySide'
+#     # os.environ['QT_PREFERRED_BINDING'] = 'PySide2'
 
 from Qt.QtWidgets import *
 from Qt.QtCore import *
@@ -37,7 +37,7 @@ def loadUI(uifile, parent):
 
 
 def to_unicode(qstring):
-    from sins import PYTHON_MAIN_VERSION
+    from local_farm import PYTHON_MAIN_VERSION
     if PYTHON_MAIN_VERSION == 2:
         if isinstance(qstring, unicode):
             return qstring
