@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# __author__ = 'XingHuan'
+# 8/31/2018
+
+
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lib'))
+import traceback
+
+from local_farm.module.sqt import *
+from local_farm.ui.main_window import LocalFarmWindow
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    mainWindow = LocalFarmWindow()
+    mainWindow.show()
+
+    app.exec_()
+
