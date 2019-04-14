@@ -32,7 +32,7 @@ class FarmJob(BaseModel):
     completeTime = DateTimeField(null=True)
     elapsedTime = IntegerField(null=True, default=0)
     cwd = CharField(null=True)
-    env = TextField(null=True)
+    _env = TextField(null=True, column_name='env')
     command = CharField(null=True)
     frameRange = CharField(null=True)  # 1-100x1 or 1-100 or 100 or 1,3
     callbacks = CharField(null=True)
@@ -63,10 +63,31 @@ class FarmJob(BaseModel):
         """
         self.frameRange = range
 
-    def submit(self):
+    @property
+    def env(self):
+        env = self._env
+        if env is not None:
+            env = eval(env)
+            return env
+        else:
+            return {}
+
+    @env.setter
+    def env(self, value):
+        if value is not None:
+            value = str(value)
+        self._env = value
+
+    def submit(self, useCurrentEnv=True):
         if self.command is None:
             logger.error('command is None!')
             return
+
+        if useCurrentEnv:
+            currentEnv = {}
+            currentEnv.update(os.environ)
+            currentEnv.update(self.env)
+            self.env = currentEnv
 
         self.save()
 

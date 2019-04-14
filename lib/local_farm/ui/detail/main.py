@@ -2,6 +2,7 @@
 # __author__ = 'XingHuan'
 # 4/13/2019
 
+import json
 from local_farm.module.sqt import *
 from local_farm.utils.time_utils import *
 from local_farm.data.models import FarmJob
@@ -94,7 +95,24 @@ class FarmPropertyWindow(QWidget):
         self.instanceElapsedTimeLabel.setText(get_detail_time_delta(self.instance.elapsedTime))
 
 
-class FarmCommandWindow(QWidget):
+class AutoResizeTextEdit(QTextBrowser):
+    def __init__(self, *args, **kwargs):
+        super(AutoResizeTextEdit, self).__init__(*args, **kwargs)
+
+        self.setReadOnly(True)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+    def set_size(self):
+        target_height = self.document().size().height()
+        self.setFixedHeight(target_height + 5.0)
+
+    def resizeEvent(self, event):
+        super(AutoResizeTextEdit, self).resizeEvent(event)
+        self.set_size()
+
+
+class FarmCommandWindow(QScrollArea):
     def __init__(self):
         super(FarmCommandWindow, self).__init__()
 
@@ -104,21 +122,36 @@ class FarmCommandWindow(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.masterLayout = QFormLayout()
-        self.masterLayout.setLabelAlignment(Qt.AlignRight)
-        self.setLayout(self.masterLayout)
+        self.centerWidget = QWidget()
+        self.masterLayout = QVBoxLayout()
+        self.centerWidget.setLayout(self.masterLayout)
+        self.setWidget(self.centerWidget)
+        self.setWidgetResizable(True)
 
-        self.commandEdit = QTextEdit()
+        self.commandEdit = AutoResizeTextEdit()
         self.commandEdit.setReadOnly(True)
         self.frameRangeLabel = QLabel()
         self.cwdLabel = QLabel()
-        self.envEdit = QTextEdit()
+        self.envEdit = AutoResizeTextEdit()
         self.envEdit.setReadOnly(True)
+        self.envEdit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        self.masterLayout.addRow('Command: ', self.commandEdit)
-        self.masterLayout.addRow('Frame Range: ', self.frameRangeLabel)
-        self.masterLayout.addRow('Cwd: ', self.cwdLabel)
-        self.masterLayout.addRow('Env: ', self.envEdit)
+        self.add_row('Command: ', self.commandEdit)
+        self.add_row('Frame Range: ', self.frameRangeLabel)
+        self.add_row('Cwd: ', self.cwdLabel)
+        self.add_row('Env: ', self.envEdit)
+
+    def add_row(self, label, widget):
+        label = QLabel(label)
+        layout1 = QVBoxLayout()
+        layout1.setAlignment(Qt.AlignTop)
+        layout1.addWidget(label)
+
+        layout = QHBoxLayout()
+        layout.setAlignment(Qt.AlignLeft)
+        layout.addLayout(layout1)
+        layout.addWidget(widget)
+        self.masterLayout.addLayout(layout)
 
     def set_instance(self, instance, job=None):
         self.instance = instance
@@ -132,7 +165,16 @@ class FarmCommandWindow(QWidget):
         self.commandEdit.setText(self.job.command)
         self.frameRangeLabel.setText(self.instance.frameRange or '')
         self.cwdLabel.setText(self.job.cwd or '')
-        self.envEdit.setText(self.job.env or '')
+        env = self.job.env
+        envStr = json.dumps(
+            env,
+            sort_keys=True,
+            indent=4,
+            separators=(',', ': '),
+            encoding="utf-8",
+            ensure_ascii=False
+        )
+        self.envEdit.setText(envStr)
 
 
 class FarmLogWindow(QTabWidget):
