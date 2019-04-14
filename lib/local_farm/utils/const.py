@@ -13,8 +13,12 @@ class AttrDict(dict):
 
 
 LOCAL_FARM_ROOT = opd(opd(opd(opd(os.path.abspath(__file__)))))
-LOCAL_FARM_DB_FILE = os.path.join(LOCAL_FARM_ROOT, 'database.sqlite')
+LOCAL_FARM_DB_FILE = os.path.join(os.path.expanduser('~'), '.localfarm', 'database.sqlite')
 LOCAL_FARM_RESOURCE_DIR = os.path.join(opd(opd(os.path.abspath(__file__))), 'ui', 'resource')
+
+
+if not os.path.exists(os.path.dirname(LOCAL_FARM_DB_FILE)):
+    os.makedirs(os.path.dirname(LOCAL_FARM_DB_FILE))
 
 
 LOCAL_FARM_STATUS = AttrDict(

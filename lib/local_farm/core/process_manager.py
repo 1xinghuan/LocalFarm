@@ -74,30 +74,34 @@ class ProcessManager(object):
         pass
 
     def kill_job(self, job):
-        from local_farm.utils.process import kill_pid
-
         for i in job.get_instances():
-            pid = i.pid
-            if pid is not None:
-                kill_pid(pid)
-                for t in self.processPool:
-                    if t.pid == pid:
-                        t.terminate()
-
-            i.pid = None
-
-            if i.status in [
-                LOCAL_FARM_STATUS.new,
-                LOCAL_FARM_STATUS.pending,
-                LOCAL_FARM_STATUS.running,
-            ]:
-                i.status = LOCAL_FARM_STATUS.killed
-                i.save()
-                self.process_status_changed(i)
+            self.kill_instance(i)
 
         job.status = LOCAL_FARM_STATUS.killed
         job.save()
         self.process_status_changed(job)
+
+    def kill_instance(self, instance):
+        from local_farm.utils.process import kill_pid
+
+        i = instance
+        pid = i.pid
+        if pid is not None:
+            kill_pid(pid)
+            for t in self.processPool:
+                if t.pid == pid:
+                    t.terminate()
+
+        i.pid = None
+
+        if i.status in [
+            LOCAL_FARM_STATUS.new,
+            LOCAL_FARM_STATUS.pending,
+            LOCAL_FARM_STATUS.running,
+        ]:
+            i.status = LOCAL_FARM_STATUS.killed
+            i.save()
+            self.process_status_changed(i)
 
     def retry_job(self, job):
         job.check_self()

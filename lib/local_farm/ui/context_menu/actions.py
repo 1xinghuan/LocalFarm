@@ -74,7 +74,10 @@ class JobKillAction(JobAction):
 
     def check_executable(self, items):
         for item in items:
-            if item.farmData.status == LOCAL_FARM_STATUS.running:
+            if item.farmData.status in [
+                LOCAL_FARM_STATUS.running,
+                # LOCAL_FARM_STATUS.failed,
+            ]:
                 return True
         return False
 
@@ -196,6 +199,31 @@ class InstanceRetryAction(InstanceAction):
             mainWindow.retry_instance(i)
 
 
+class InstanceKillAction(InstanceAction):
+    name = 'kill_instance'
+
+    def __init__(self, *args, **kwargs):
+        super(InstanceKillAction, self).__init__(*args, **kwargs)
+
+        self.label = 'Kill'
+
+    def check_executable(self, items):
+        for item in items:
+            if item.farmData.status in [
+                LOCAL_FARM_STATUS.running,
+                # LOCAL_FARM_STATUS.failed,
+            ]:
+                return True
+        return False
+
+    def execute(self, items):
+        from local_farm.ui.main_window import get_main_window
+        mainWindow = get_main_window()
+        selectedInstances = self.get_selected_datas(items)
+        for instance in selectedInstances:
+            mainWindow.kill_instance(instance)
+
+
 ContextMenuManager.register_actions(
     'DataTableItem',
     [
@@ -204,6 +232,7 @@ ContextMenuManager.register_actions(
         JobRetryAction,
         JobRemoveAction,
         JobCheckAction,
+        InstanceKillAction,
         InstanceRetryAction,
     ]
 )

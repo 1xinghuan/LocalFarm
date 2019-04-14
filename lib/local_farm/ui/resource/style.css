@@ -11,14 +11,6 @@ QWidget{
 QWidget:disabled{
     color: palette(disabled);
 }
-QWidget:item{
-    color: palette(text);
-    background-color: palette(window);
-    selection-background-color: rgb(60, 170, 220);
-    selection-color: palette(text);
-    background-clip: border;
-    outline: 0;
-}
 QWidget:item:hover{
     background-color: palette(highlight);
     color: palette(text);
@@ -181,6 +173,14 @@ QMenu::item:disabled{
 }
 QMenu::item:selected{
     background:palette(highlight);
+}
+QMenuBar:item{
+    color: palette(text);
+    background-color: palette(window);
+    selection-background-color: rgb(60, 170, 220);
+    selection-color: palette(text);
+    background-clip: border;
+    outline: 0;
 }
 
 
