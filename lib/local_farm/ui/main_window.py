@@ -37,6 +37,8 @@ class FarmDataTableItem(QTableWidgetItem):
     itemName = 'DataTableItem'
 
     def __init__(self, text, data=None):
+        if text == 'None':
+            text = ''
         super(FarmDataTableItem, self).__init__(text)
 
         self.farmData = data
