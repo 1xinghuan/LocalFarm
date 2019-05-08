@@ -45,6 +45,9 @@ class FarmJob(BaseModel):
 
         self._framePerInstance = None
 
+    def set_name(self, name):
+        self.name = name
+
     def set_command(self, command):
         self.command = command
 
