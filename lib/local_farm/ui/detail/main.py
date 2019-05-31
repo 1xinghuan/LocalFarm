@@ -196,8 +196,8 @@ class FarmLogWindow(QTabWidget):
         self.update_ui()
 
     def update_ui(self):
-        self.stdoutEdit.setText(self.instance.stdout or '')
-        self.stderrEdit.setText(self.instance.stderr or '')
+        self.stdoutEdit.setText(self.instance.get_std() or '')
+        self.stderrEdit.setText(self.instance.get_std(err=True) or '')
 
 
 class DetailWindow(QTabWidget):

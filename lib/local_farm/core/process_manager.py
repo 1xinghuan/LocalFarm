@@ -29,31 +29,33 @@ class ProcessManager(object):
             status = [status]
         result = []
         for p in self.processPool:
-            if p.instance.status in status:
+            if p.get_instance().status in status:
                 result.append(p)
         return result
 
     def start_job(self, job):
         job.status = LOCAL_FARM_STATUS.pending
+        if len(job.sources) > 0:
+            job.status = LOCAL_FARM_STATUS.blocking
         job.save()
 
         instances = job.get_instances()
-        self.add_instances_to_pool(instances)
+        self.add_instances_to_pool(instances, status=job.status)
         self.check_all()
         self.process_status_changed(job)
 
-    def add_instances_to_pool(self, instances):
+    def add_instances_to_pool(self, instances, status=LOCAL_FARM_STATUS.pending):
         for i in instances:
-            self.add_instance_to_pool(i)
+            self.add_instance_to_pool(i, status=status)
 
-    def add_instance_to_pool(self, instance):
+    def add_instance_to_pool(self, instance, status=LOCAL_FARM_STATUS.pending):
         self.processThread = ProcessThread()
         self.processThread.statusChanged.connect(self.process_status_changed)
         self.processThread.progressChanged.connect(self.process_progress_changed)
         self.processThread.processDone.connect(self.process_done)
         self.processPool.append(self.processThread)
 
-        self.processThread.set_instance(instance)
+        self.processThread.set_instance(instance, status)
 
     def check_all(self):
         self.processPool.sort(cmp=process_cmp)

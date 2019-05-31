@@ -4,11 +4,11 @@
 
 import os
 
-# if os.getenv("QT_PREFERRED_BINDING") is None:
-#     os.environ['QT_PREFERRED_BINDING'] = 'PyQt4'
-#     # os.environ['QT_PREFERRED_BINDING'] = 'PyQt5'
-#     # os.environ['QT_PREFERRED_BINDING'] = 'PySide'
-#     # os.environ['QT_PREFERRED_BINDING'] = 'PySide2'
+if os.getenv("QT_PREFERRED_BINDING") is None:
+    os.environ['QT_PREFERRED_BINDING'] = 'PyQt4'
+    # os.environ['QT_PREFERRED_BINDING'] = 'PyQt5'
+    # os.environ['QT_PREFERRED_BINDING'] = 'PySide'
+    # os.environ['QT_PREFERRED_BINDING'] = 'PySide2'
 
 from Qt.QtWidgets import *
 from Qt.QtCore import *

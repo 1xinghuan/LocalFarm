@@ -4,15 +4,18 @@
 
 import os
 import datetime
+import tempfile
 from local_farm.module.db.peewee import *
 from local_farm.utils.const import LOCAL_FARM_DB_FILE, LOCAL_FARM_STATUS
 from local_farm.utils.frame import get_frame_list
 import logging
+from local_farm.data.deferred_manager import DeferredManager2
 
 logger = logging.getLogger('local_farm_model')
 
 
 database = SqliteDatabase(LOCAL_FARM_DB_FILE)
+dm = DeferredManager2
 
 
 class BaseModel(Model):
@@ -40,10 +43,42 @@ class FarmJob(BaseModel):
     class Meta:
         db_table = 'jobs'
 
+    def get_sources(self, from_query=False):
+        if not isinstance(self.sources_connection, list) or from_query:
+            return (FarmJob
+                    .select(FarmJob, FarmJobRelationship)
+                    .join(FarmJobRelationship, on=FarmJobRelationship.from_job)
+                    .where(FarmJobRelationship.to_job == self)
+                    )
+        else:
+            return [i.from_job for i in self.sources_connection]
+
+    def get_destinations(self):
+        if not isinstance(self.destinations_connection, list):
+            return (FarmJob
+                    .select(FarmJob, FarmJobRelationship)
+                    .join(FarmJobRelationship, on=FarmJobRelationship.to_job)
+                    .where(FarmJobRelationship.from_job == self)
+                    )
+        else:
+            return [i.to_job for i in self.destinations_connection]
+
+    @property
+    def sources(self):
+        return self.get_sources()
+
+    @property
+    def destinations(self):
+        return self.get_destinations()
+
+    def set_dependency(self, sources):
+        self._tempSources = sources
+
     def __init__(self, *args, **kwargs):
         super(FarmJob, self).__init__(*args, **kwargs)
 
         self._framePerInstance = None
+        self._tempSources = []
 
     def set_name(self, name):
         self.name = name
@@ -94,6 +129,10 @@ class FarmJob(BaseModel):
 
         self.save()
 
+        if len(self._tempSources) > 0:
+            sources_data = [{'from_job': v, 'to_job': self} for v in self._tempSources]
+            FarmJobRelationship.insert_many(sources_data).execute()
+
         if self.frameRange is not None:
             if isinstance(self.frameRange, list):
                 frameRangeList = self.frameRange
@@ -139,6 +178,23 @@ class FarmJob(BaseModel):
             self.status = LOCAL_FARM_STATUS.complete
             self.save()
 
+    def check_sources(self):
+        # print 'check_sources'
+        if len(self.sources) > 0:
+            sourcesFinished = True
+            for sourceJob in self.get_sources(from_query=True):
+                # print sourceJob, sourceJob.status
+                if sourceJob.status != LOCAL_FARM_STATUS.complete:
+                    sourcesFinished = False
+                    break
+            if sourcesFinished:
+                for instance in self.instances:
+                    instance.status = LOCAL_FARM_STATUS.pending
+                    instance.save()
+                self.status = LOCAL_FARM_STATUS.pending
+                self.save()
+                return True
+
 
 class FarmInstance(BaseModel):
     job = ForeignKeyField(model=FarmJob, backref='instances')
@@ -156,11 +212,72 @@ class FarmInstance(BaseModel):
     class Meta:
         db_table = 'instances'
 
+    def __init__(self, *args, **kwargs):
+        super(FarmInstance, self).__init__(*args, **kwargs)
+
+        self.processThread = None
+
+    def _get_temp_std_txt(self, err=False):
+        stdTxt = os.path.join(tempfile.gettempdir(), 'localfarm_stdout_{}.txt'.format(self.id))
+        if err:
+            stdTxt = os.path.join(tempfile.gettempdir(), 'localfarm_stderr_{}.txt'.format(self.id))
+        return stdTxt
+
+    def write_temp_std(self, text, err=False):
+        stdTxt = self._get_temp_std_txt(err)
+        with open(stdTxt, 'a') as f:
+            f.write(text)
+
+    def read_temp_std(self, err=False):
+        stdTxt = self._get_temp_std_txt(err)
+        text = ''
+        if os.path.isfile(stdTxt):
+            with open(stdTxt, 'r') as f:
+                text = f.read()
+        return text
+
+    def write_std(self):
+        stdout = self.read_temp_std()
+        stderr = self.read_temp_std(err=True)
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def get_std(self, err=False):
+        text = self.read_temp_std(err)
+        if text == '':
+            text = self.stderr if err else self.stdout
+        return text
+
+
+class FarmJobRelationship(BaseModel):
+    from_job = dm.fk(fk_model_name='FarmJob', backref='destinations_connection')
+    to_job = dm.fk(fk_model_name='FarmJob', backref='sources_connection')
+
+    class Meta:
+        indexes = ((('from_job', 'to_job'), True),)
+        db_table = 'job_relationship'
+
 
 models = [
     FarmJob,
     FarmInstance,
+    FarmJobRelationship,
 ]
+
+
+def create_class_dict(members, obj_class):
+    class_dict = {}
+    for name, obj in members.items():
+        try:
+            if issubclass(obj, obj_class):
+                class_dict[name] = obj
+        except:
+            pass
+    return class_dict
+
+
+model_dict = create_class_dict(globals().copy(), Model)
+dm.connect(model_dict)
 
 
 def create_tables():

@@ -8,7 +8,7 @@ import datetime
 from local_farm.module.sqt import QThread, Signal
 from local_farm.utils.const import LOCAL_FARM_STATUS, LOCAL_FARM_VARIABLES
 from local_farm.utils.frame import get_frame_info
-from local_farm.data.models import FarmJob
+from local_farm.data.models import FarmJob, FarmInstance
 
 
 class ProcessThread(QThread):
@@ -24,13 +24,14 @@ class ProcessThread(QThread):
 
         self.pid = None
 
-    def set_instance(self, instance):
+    def set_instance(self, instance, status=LOCAL_FARM_STATUS.pending):
         self.instance = instance
+        self.instance.processThread = self
         self.job = self.instance.job
 
         self.pid = None
 
-        self.instance.status = LOCAL_FARM_STATUS.pending
+        self.instance.status = status
         self.instance.save()
         self.statusChanged.emit(self.instance, LOCAL_FARM_STATUS.pending)
 
@@ -38,6 +39,9 @@ class ProcessThread(QThread):
             self.job.status = LOCAL_FARM_STATUS.pending
             self.job.save()
             self.statusChanged.emit(self.job, LOCAL_FARM_STATUS.pending)
+
+    def get_instance(self):
+        return FarmInstance.get(id=self.instance.id)
 
     def run(self):
         cmd = self.job.command
@@ -104,10 +108,11 @@ class ProcessThread(QThread):
 
         while stdout:
             # print(stdout)
-            stdoutData = self.instance.stdout or ''
-            stdoutData += stdout
-            self.instance.stdout = stdoutData
-            self.instance.save()
+            self.instance.write_temp_std(stdout)
+            # stdoutData = self.instance.stdout or ''
+            # stdoutData += stdout
+            # self.instance.stdout = stdoutData
+            # self.instance.save()
 
             stdout = process.stdout.readline()
 
@@ -115,9 +120,10 @@ class ProcessThread(QThread):
 
         while stderr:
             # print(stderr)
-            stderrData = self.instance.stderr or ''
-            stderrData += stderr
-            self.instance.stderr = stderrData
+            self.instance.write_temp_std(stderr, err=True)
+            # stderrData = self.instance.stderr or ''
+            # stderrData += stderr
+            # self.instance.stderr = stderrData
 
             stderr = process.stderr.readline()
 
@@ -131,6 +137,8 @@ class ProcessThread(QThread):
         self.instance.elapsedTime = elapsedTime
         self.instance.pid = None
 
+        self.instance.write_std()
+
         job = FarmJob.get(id=self.job.id)
         if failed:
             self.instance.status = LOCAL_FARM_STATUS.failed
@@ -141,9 +149,12 @@ class ProcessThread(QThread):
         self.instance.save()
         self.statusChanged.emit(self.instance, self.instance.status)
 
+        jobComplete = False
+        # print 'instance finish', job
         if not failed:
             notCompleteInstances = job.get_instances(LOCAL_FARM_STATUS.complete, reverse=True)
             if len(notCompleteInstances) == 0:
+                jobComplete = True
                 job.status = LOCAL_FARM_STATUS.complete
                 job.completeTime = completeTime
                 jobElapsedTime = completeTime - job.startTime
@@ -151,6 +162,14 @@ class ProcessThread(QThread):
                 job.elapsedTime = jobElapsedTime
 
         job.save()
+        # print 'saved', job, job.status
+
+        if jobComplete:
+            for dstJob in job.destinations:
+                result = dstJob.check_sources()
+                if result:
+                    self.statusChanged.emit(dstJob, dstJob.status)
+
         self.statusChanged.emit(job, job.status)
 
         self.processDone.emit(self)
