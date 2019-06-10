@@ -6,7 +6,7 @@ import os
 import datetime
 import tempfile
 from local_farm.module.db.peewee import *
-from local_farm.utils.const import LOCAL_FARM_DB_FILE, LOCAL_FARM_STATUS
+from local_farm.utils.const import LOCAL_FARM_DB_FILE, LOCAL_FARM_STATUS, LOCAL_FARM_VARIABLES
 from local_farm.utils.frame import get_frame_list
 import logging
 from local_farm.data.deferred_manager import DeferredManager2
@@ -42,6 +42,22 @@ class FarmJob(BaseModel):
 
     class Meta:
         db_table = 'jobs'
+
+    @classmethod
+    def get_frame_start_const(cls):
+        return '$' + LOCAL_FARM_VARIABLES.FRAME_START
+
+    @classmethod
+    def get_frame_end_const(cls):
+        return '$' + LOCAL_FARM_VARIABLES.FRAME_END
+
+    @classmethod
+    def get_frame_interval_const(cls):
+        return '$' + LOCAL_FARM_VARIABLES.FRAME_INTERVAL
+
+    @classmethod
+    def get_frame_string_const(cls):
+        return '$' + LOCAL_FARM_VARIABLES.FRAME_STRING
 
     def get_sources(self, from_query=False):
         if not isinstance(self.sources_connection, list) or from_query:

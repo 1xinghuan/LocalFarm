@@ -5,8 +5,8 @@
 
 def get_frame_list1(frameIn, frameOut, interval=1, framesPerInstance=1):
     inout = [str(i) for i in range(int(frameIn), int(frameOut) + 1, int(interval))]
-    framesEach = framesPerInstance
-    n = len(inout) / framesEach
+    framesEach = int(framesPerInstance)
+    n = int(len(inout) / framesEach)
     if len(inout) % framesEach > 0:
         n = n + 1
 
